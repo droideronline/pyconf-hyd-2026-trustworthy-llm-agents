@@ -1,22 +1,45 @@
 import json
 from decimal import Decimal
 
+from pydantic import BaseModel, Field
+
 from support_swarm.db.engine import get_session
 from support_swarm.db.models import EmailLog, Order, Refund
 from support_swarm.tools.registry import register_tool
 
 
-@register_tool
+class LookupOrderInput(BaseModel):
+    """Input for looking up orders."""
+
+    order_id: str = Field(
+        default="",
+        description="The order identifier in ORD-XXXX format (e.g. 'ORD-1001')",
+    )
+    customer_email: str = Field(
+        default="", description="Customer email address to look up all their orders"
+    )
+
+
+class ProcessRefundInput(BaseModel):
+    """Input for processing a refund."""
+
+    order_id: str = Field(
+        description="The order to refund in ORD-XXXX format (e.g. 'ORD-1001')"
+    )
+    amount: float = Field(description="Dollar amount to refund, must be positive")
+
+
+class SendEmailInput(BaseModel):
+    """Input for sending an email."""
+
+    customer_email: str = Field(description="Recipient email address")
+    subject: str = Field(description="Email subject line")
+    body: str = Field(description="Full email body text")
+
+
+@register_tool(args_schema=LookupOrderInput)
 def lookup_order(order_id: str = "", customer_email: str = "") -> str:
-    """Query the order database by order ID or customer email.
-
-    Returns order status, items, shipping info, delivery date, and notes.
-    At least one of order_id or customer_email must be provided.
-
-    Args:
-        order_id: The order identifier (e.g. "ORD-1001").
-        customer_email: Customer email address to look up all their orders.
-    """
+    """Look up orders by order ID or customer email."""
     if not order_id and not customer_email:
         return json.dumps({"error": "Provide order_id or customer_email."})
 
@@ -47,16 +70,9 @@ def _serialize_order(order) -> dict:
     }
 
 
-@register_tool
+@register_tool(args_schema=ProcessRefundInput)
 def process_refund(order_id: str, amount: float) -> str:
-    """Initiate a refund for an order via the refund API.
-
-    The refund amount cannot exceed the original order total.
-
-    Args:
-        order_id: The order to refund (e.g. "ORD-1001").
-        amount: Dollar amount to refund. Must be positive.
-    """
+    """Initiate a refund for an order."""
     if amount <= 0:
         return json.dumps(
             {"success": False, "error": "Refund amount must be positive."}
@@ -95,15 +111,9 @@ def process_refund(order_id: str, amount: float) -> str:
         )
 
 
-@register_tool
+@register_tool(args_schema=SendEmailInput)
 def send_email(customer_email: str, subject: str, body: str) -> str:
-    """Send a status update or refund confirmation email to the customer.
-
-    Args:
-        customer_email: Recipient email address.
-        subject: Email subject line.
-        body: Full email body text.
-    """
+    """Send an email to the customer."""
     with get_session() as session:
         email = EmailLog.create(
             session, customer_email=customer_email, subject=subject, body=body

@@ -126,10 +126,10 @@ The UI opens at **http://localhost:3000**.
 
 ## Seed Data
 
-| Table               | Records | Notes                                              |
-|---------------------|---------|-----------------------------------------------------|
-| customers           | 4       | Alice, Bob, Charlie, Eve                            |
-| orders              | 7       | ORD-1001 to ORD-1007 (various statuses and amounts) |
-| knowledge_articles  | 5       | Return, Refund, Shipping, Warranty, Escalation      |
+| Table              | Records | Notes                                               |
+| ------------------ | ------- | --------------------------------------------------- |
+| customers          | 4       | Alice, Bob, Charlie, Eve                            |
+| orders             | 7       | ORD-1001 to ORD-1007 (various statuses and amounts) |
+| knowledge_articles | 5       | Return, Refund, Shipping, Warranty, Escalation      |
 
 > **ORD-1006** contains a prompt injection payload in the `notes` field for the security guardrails demo.
