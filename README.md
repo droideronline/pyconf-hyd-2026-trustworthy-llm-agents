@@ -23,20 +23,18 @@ User Query
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
 - Docker & Docker Compose
-- Node.js 18+ and npm
+- Node.js 20+ and [pnpm](https://pnpm.io/) (for local UI development)
 - An OpenAI API key (or Azure OpenAI credentials)
 
 ## Quick Start
 
-### 1. Clone and install dependencies
+There are two ways to run the project: **Docker Compose** (recommended) or **local development**.
 
-```bash
-git clone https://github.com/droideronline/pyconf-hyd-2026-trustworthy-llm-agents.git
-cd pyconf-hyd-2026-trustworthy-llm-agents
-uv sync
-```
+### Option A: Docker Compose (recommended)
 
-### 2. Configure environment
+Run the entire stack (database, backend, and UI) with a single command.
+
+#### 1. Configure environment
 
 ```bash
 cp .env.example .env
@@ -50,13 +48,81 @@ OPENAI_API_KEY=sk-your-key-here
 
 For Azure OpenAI, set `LLM_PROVIDER=azure_openai` and fill in the Azure fields.
 
-### 3. Start PostgreSQL + pgvector
+#### 2. Start all services
 
 ```bash
-docker compose up -d
+docker compose up --build
 ```
 
-### 4. Seed the database
+This starts three services:
+
+| Service      | Port | Description                          |
+| ------------ | ---- | ------------------------------------ |
+| **db**       | 5432 | PostgreSQL 16 + pgvector             |
+| **langgraph**| 2024 | LangGraph dev server (Python backend)|
+| **ui**       | 3000 | Agent Chat UI (Next.js frontend)     |
+
+#### 3. Seed the database
+
+In a separate terminal:
+
+```bash
+docker compose exec langgraph uv run python -m support_swarm.db.seed
+```
+
+#### 4. Open the UI
+
+Navigate to **http://localhost:3000** and start chatting.
+
+#### Useful commands
+
+```bash
+# View logs
+docker compose logs -f
+
+# View logs for a specific service
+docker compose logs -f langgraph
+
+# Restart a single service
+docker compose restart langgraph
+
+# Stop everything and remove volumes
+docker compose down -v
+```
+
+---
+
+### Option B: Local development
+
+#### 1. Clone and install dependencies
+
+```bash
+git clone https://github.com/droideronline/pyconf-hyd-2026-trustworthy-llm-agents.git
+cd pyconf-hyd-2026-trustworthy-llm-agents
+uv sync
+```
+
+#### 2. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and set your API key:
+
+```dotenv
+OPENAI_API_KEY=sk-your-key-here
+```
+
+For Azure OpenAI, set `LLM_PROVIDER=azure_openai` and fill in the Azure fields.
+
+#### 3. Start PostgreSQL + pgvector
+
+```bash
+docker compose up -d db
+```
+
+#### 4. Seed the database
 
 Create tables and insert sample data (customers, orders, knowledge articles):
 
@@ -64,7 +130,7 @@ Create tables and insert sample data (customers, orders, knowledge articles):
 uv run python -m support_swarm.db.seed
 ```
 
-### 5. Generate embeddings for the knowledge base
+#### 5. Generate embeddings for the knowledge base
 
 This step requires your `OPENAI_API_KEY` to be set:
 
@@ -72,7 +138,7 @@ This step requires your `OPENAI_API_KEY` to be set:
 uv run python -m support_swarm.db.seed --embeddings
 ```
 
-### 6. Start the backend (LangGraph dev server)
+#### 6. Start the backend (LangGraph dev server)
 
 ```bash
 uv run langgraph dev --no-browser
@@ -85,14 +151,14 @@ curl http://localhost:2024/ok
 # {"ok": true}
 ```
 
-### 7. Start the frontend (Agent Chat UI)
+#### 7. Start the frontend (Agent Chat UI)
 
 In a new terminal:
 
 ```bash
 cd agent-chat-ui
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 The UI opens at **http://localhost:3000**.
@@ -120,7 +186,8 @@ The UI opens at **http://localhost:3000**.
 ├── agent-chat-ui/           # LangChain Agent Chat UI (Next.js)
 ├── langgraph.json           # LangGraph dev server config
 ├── settings.yaml            # App config (env var driven)
-├── docker-compose.yml       # PostgreSQL 16 + pgvector
+├── docker/                  # Dockerfiles for langgraph and UI services
+├── docker-compose.yml       # Full stack: PostgreSQL + LangGraph + Chat UI
 └── pyproject.toml           # Python dependencies (managed by uv)
 ```
 
