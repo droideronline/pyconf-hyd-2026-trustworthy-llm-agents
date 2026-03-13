@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "shop_assist": "./support_swarm/workflow.py:graph"
+  },
+  "env": ".env"
+}
