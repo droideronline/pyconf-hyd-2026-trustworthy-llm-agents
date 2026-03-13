@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import Any, Literal
 
 from langchain.agents import create_agent
+from langchain.agents.middleware import HumanInTheLoopMiddleware, PIIMiddleware
 from langchain.agents.structured_output import ProviderStrategy
 from langchain_core.messages import AIMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
@@ -13,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from support_swarm.declarative import get_agent_spec
 from support_swarm.enums import Agents
+from support_swarm.guardrails import RefundCapMiddleware
 from support_swarm.model_client import get_chat_client
 
 
@@ -88,12 +90,35 @@ def route_by_intent(
 
 
 async def shop_assist(state: MessagesState) -> dict[str, Any]:
-    """Run the ShopAssist agent."""
+    """Run the ShopAssist agent with guardrails middleware.
+
+    Middleware stack:
+    - HumanInTheLoopMiddleware: pauses for human approval before process_refund
+      and send_email calls (uses LangGraph interrupt).
+    - RefundCapMiddleware: hard-blocks refunds exceeding $150 policy cap.
+    - PIIMiddleware: redacts credit-card numbers in model output.
+    """
     spec = get_agent_spec(Agents.SHOP_ASSIST)
     agent = create_agent(
         model=get_chat_client(),
         tools=spec.get_tools(),
         system_prompt=spec.render_system_prompt(store_name="Acme Corp"),
+        middleware=[
+            HumanInTheLoopMiddleware(
+                interrupt_on={
+                    "process_refund": {
+                        "description": "Review this refund before processing",
+                        "allowed_decisions": ["approve", "edit", "reject"],
+                    },
+                    "send_email": {
+                        "description": "Review this email before sending",
+                        "allowed_decisions": ["approve", "edit", "reject"],
+                    },
+                }
+            ),
+            RefundCapMiddleware(max_amount=150.0),
+            PIIMiddleware("credit_card", strategy="redact", apply_to_output=True),
+        ],
     )
     result = await agent.ainvoke({"messages": state["messages"]})
     return {"messages": result["messages"]}
@@ -112,12 +137,22 @@ async def policy_advisor(state: MessagesState) -> dict[str, Any]:
 
 
 async def escalation_agent(state: MessagesState) -> dict[str, Any]:
-    """Run the EscalationAgent."""
+    """Run the EscalationAgent with HITL guardrail on send_email."""
     spec = get_agent_spec(Agents.ESCALATION_AGENT)
     agent = create_agent(
         model=get_chat_client(),
         tools=spec.get_tools(),
         system_prompt=spec.render_system_prompt(store_name="Acme Corp"),
+        middleware=[
+            HumanInTheLoopMiddleware(
+                interrupt_on={
+                    "send_email": {
+                        "description": "Review escalation email before sending",
+                        "allowed_decisions": ["approve", "edit", "reject"],
+                    },
+                }
+            ),
+        ],
     )
     result = await agent.ainvoke({"messages": state["messages"]})
     return {"messages": result["messages"]}
@@ -131,6 +166,15 @@ def build_workflow() -> StateGraph:
 
     Flow:
         START → router → (conditional) → shop_assist | policy_advisor | escalation_agent → END
+
+    Guardrails:
+        - shop_assist: HITL interrupt on process_refund & send_email,
+          refund-cap enforcement ($150), credit-card PII redaction.
+        - escalation_agent: HITL interrupt on send_email.
+
+    Persistence:
+        The LangGraph API runtime automatically provides a PostgreSQL
+        checkpointer — no manual checkpointer is needed.
     """
     builder = StateGraph(MessagesState)
 
