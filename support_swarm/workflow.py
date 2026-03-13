@@ -14,6 +14,10 @@ from pydantic import BaseModel, Field
 from support_swarm.declarative import get_agent_spec
 from support_swarm.enums import Agents
 from support_swarm.model_client import get_chat_client
+from support_swarm.observability import setup_tracing
+
+# Initialise tracing before any LangChain objects are constructed.
+setup_tracing()
 
 
 # ── Router Schema ────────────────────────────────────────────────────────────

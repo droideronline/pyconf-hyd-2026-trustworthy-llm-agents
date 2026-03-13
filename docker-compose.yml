@@ -27,6 +27,7 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+psycopg2://support:support@db:5432/support_swarm
+      LANGFUSE_HOST: http://langfuse-web:3000
     depends_on:
       db:
         condition: service_healthy
