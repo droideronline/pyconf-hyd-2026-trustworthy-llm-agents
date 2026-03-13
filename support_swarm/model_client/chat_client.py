@@ -15,9 +15,11 @@ def get_chat_client(settings: Settings | None = None) -> BaseChatModel:
     match settings.provider:
         case Provider.OPENAI:
             cfg = settings.openai
-            kwargs: dict = {"model": cfg.model, "temperature": cfg.temperature}
+            kwargs: dict = {"model": cfg.model}
             if cfg.api_key:
                 kwargs["api_key"] = cfg.api_key
+            if cfg.base_url:
+                kwargs["base_url"] = cfg.base_url
             return ChatOpenAI(**kwargs)
 
         case Provider.AZURE_OPENAI:
