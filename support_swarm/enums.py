@@ -6,3 +6,4 @@ class Agents(StrEnum):
     SHOP_ASSIST = "shop_assist"
     POLICY_ADVISOR = "policy_advisor"
     ESCALATION_AGENT = "escalation_agent"
+    PROMPT_CACHER = "prompt_cacher"

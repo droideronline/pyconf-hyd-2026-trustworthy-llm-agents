@@ -18,6 +18,9 @@ system_prompt: |
   - **escalation** — the customer is upset, mentions legal action, requests a
     manager, reports a safety concern, or has been through multiple failed
     resolution attempts.
+  - **prompt_caching** — the customer is asking about prompt caching, KV cache,
+    cached tokens, prefix caching, cache hit rates, cache warming, or any
+    question related to LLM prompt caching strategies, costs, or implementation.
   - **general** — greetings, capability questions, or anything that does not
     clearly fit the other categories.
 

@@ -28,6 +28,7 @@ class Intent(StrEnum):
     ORDER_SUPPORT = "order_support"
     POLICY_INQUIRY = "policy_inquiry"
     ESCALATION = "escalation"
+    PROMPT_CACHING = "prompt_caching"
 
 
 class RouterIntent(BaseModel):
@@ -48,6 +49,7 @@ _INTENT_TO_NODE: dict[Intent, str] = {
     Intent.ORDER_SUPPORT: "shop_assist",
     Intent.POLICY_INQUIRY: "policy_advisor",
     Intent.ESCALATION: "escalation_agent",
+    Intent.PROMPT_CACHING: "prompt_cacher",
 }
 
 
@@ -77,7 +79,7 @@ async def router(state: MessagesState) -> dict[str, Any]:
 
 def route_by_intent(
     state: MessagesState,
-) -> Literal["shop_assist", "policy_advisor", "escalation_agent"]:
+) -> Literal["shop_assist", "policy_advisor", "escalation_agent", "prompt_cacher"]:
     """Read the router's structured classification and pick the next node."""
     last_msg = state["messages"][-1]
     routing = last_msg.additional_kwargs.get("routing", {})
@@ -127,6 +129,18 @@ async def escalation_agent(state: MessagesState) -> dict[str, Any]:
     return {"messages": result["messages"]}
 
 
+async def prompt_cacher(state: MessagesState) -> dict[str, Any]:
+    """Run the PromptCacher agent."""
+    spec = get_agent_spec(Agents.PROMPT_CACHER)
+    agent = create_agent(
+        model=get_chat_client(),
+        tools=spec.get_tools(),
+        system_prompt=spec.render_system_prompt(store_name="Acme Corp"),
+    )
+    result = await agent.ainvoke({"messages": state["messages"]})
+    return {"messages": result["messages"]}
+
+
 # ── Graph ────────────────────────────────────────────────────────────────────
 
 
@@ -143,6 +157,7 @@ def build_workflow() -> StateGraph:
     builder.add_node("shop_assist", shop_assist)
     builder.add_node("policy_advisor", policy_advisor)
     builder.add_node("escalation_agent", escalation_agent)
+    builder.add_node("prompt_cacher", prompt_cacher)
 
     # Edges
     builder.add_edge(START, "router")
@@ -150,6 +165,7 @@ def build_workflow() -> StateGraph:
     builder.add_edge("shop_assist", END)
     builder.add_edge("policy_advisor", END)
     builder.add_edge("escalation_agent", END)
+    builder.add_edge("prompt_cacher", END)
 
     return builder.compile()
 
