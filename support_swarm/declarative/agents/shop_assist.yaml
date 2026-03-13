@@ -28,6 +28,7 @@ whitelisted_tools:
   - lookup_order
   - process_refund
   - send_email
+  - search_knowledge_base
 
 user_prompt:
   - |
