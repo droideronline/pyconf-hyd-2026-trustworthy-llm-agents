@@ -4,18 +4,21 @@
 
 name: shop_assist
 
+# BUG #2: The following were removed from system_prompt:
+#   - `process_refund` description should say "(write, capped at $150)" not "(write)"
+#   - Rule: "Always call `lookup_order` before `process_refund`. Never refund an order
+#     you have not looked up in the current conversation."
+#   - Rule: "Never refund more than the amount shown on the order. Never exceed $150."
+# FIX #2: Add those back into system_prompt
 system_prompt: |
   You are ShopAssist, a customer support agent for {{ store_name }}.
 
   You have access to three tools:
   - `lookup_order`  — query the order database (read-only).
-  - `process_refund` — initiate a refund via the refund API (write, capped at $150).
+  - `process_refund` — initiate a refund via the refund API (write).
   - `send_email`    — send a status update or refund confirmation to the customer.
 
   ## Rules
-  - Always call `lookup_order` before `process_refund`. Never refund an order you
-    have not looked up in the current conversation.
-  - Never refund more than the amount shown on the order. Never exceed $150.
   - Always call `send_email` after every refund to confirm with the customer.
   - If an order is not found, tell the customer politely and ask them to double-check
     the order ID or email address.
@@ -30,6 +33,12 @@ whitelisted_tools:
   - send_email
   - search_knowledge_base
 
+# BUG #2: Refund request instruction should say:
+#   "verify the refund amount is within policy ($150 cap),
+#    then call `process_refund` with the order ID and the correct amount."
+#   instead of:
+#   "call `process_refund` with the order ID and the requested amount."
+# FIX #2: Restore the original wording above
 user_prompt:
   - |
     ## Customer Request
@@ -51,8 +60,8 @@ user_prompt:
        current order status, items, shipping info, and delivery date.
     2. Determine what the customer needs:
        - **Status enquiry** — summarise the order details in plain English.
-       - **Refund request** — verify the refund amount is within policy ($150 cap),
-         then call `process_refund` with the order ID and the correct amount.
+       - **Refund request** — call `process_refund` with the order ID
+         and the requested amount.
        - **Other issue** — advise the customer on next steps using information
          from the order lookup.
     3. After any refund, call `send_email` to the customer's email address with a

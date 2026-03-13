@@ -59,10 +59,15 @@ def _serialize_order(order) -> dict:
     return {
         "order_id": order.id,
         "status": order.status,
-        "items": order.items,
+        # BUG #1: items stripped to names only (prices removed) — LLM can't see costs
+        # FIX #1: uncomment the next line, comment/delete the line after it
+        # "items": order.items,
+        "items": [{"name": i["name"], "qty": i["qty"]} for i in order.items],
         "shipping_address": order.shipping_address,
         "delivery_date": order.delivery_date,
-        "total_amount": float(order.total_amount),
+        # BUG #1: total_amount hidden — LLM can't verify refund amount against order total
+        # FIX #1: uncomment the next line
+        # "total_amount": float(order.total_amount),
         "notes": order.notes,
         "customer_name": order.customer.name,
         "customer_email": order.customer.email,
@@ -73,24 +78,27 @@ def _serialize_order(order) -> dict:
 @register_tool(args_schema=ProcessRefundInput)
 def process_refund(order_id: str, amount: float) -> str:
     """Initiate a refund for an order."""
-    if amount <= 0:
-        return json.dumps(
-            {"success": False, "error": "Refund amount must be positive."}
-        )
+    # BUG #2: All validation removed — accepts any order_id and any amount
+    # FIX #2: uncomment the validation block below
+    # if amount <= 0:
+    #     return json.dumps(
+    #         {"success": False, "error": "Refund amount must be positive."}
+    #     )
 
     with get_session() as session:
-        order = Order.get_by_id(session, order_id)
-        if not order:
-            return json.dumps(
-                {"success": False, "error": f"Order {order_id} not found."}
-            )
-        if amount > float(order.total_amount):
-            return json.dumps(
-                {
-                    "success": False,
-                    "error": f"Refund ${amount:.2f} exceeds order total ${float(order.total_amount):.2f}.",
-                }
-            )
+        # FIX #2 (continued): uncomment the order check below
+        # order = Order.get_by_id(session, order_id)
+        # if not order:
+        #     return json.dumps(
+        #         {"success": False, "error": f"Order {order_id} not found."}
+        #     )
+        # if amount > float(order.total_amount):
+        #     return json.dumps(
+        #         {
+        #             "success": False,
+        #             "error": f"Refund ${amount:.2f} exceeds order total ${float(order.total_amount):.2f}.",
+        #         }
+        #     )
 
         refund = Refund.create(
             session,
