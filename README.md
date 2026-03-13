@@ -61,6 +61,24 @@ This starts three services:
 | **db**       | 5432 | PostgreSQL 16 + pgvector             |
 | **langgraph**| 2024 | LangGraph dev server (Python backend)|
 | **ui**       | 3000 | Agent Chat UI (Next.js frontend)     |
+| **langfuse-web** | 4000 | Langfuse Observability UI        |
+| **langfuse-worker** | 3030 | Langfuse background worker    |
+| **langfuse-postgres** | 5433 | Langfuse PostgreSQL          |
+| **langfuse-clickhouse** | 8123 | Langfuse ClickHouse (analytics) |
+| **langfuse-minio** | 9090 | Langfuse blob storage (MinIO)   |
+| **langfuse-redis** | 6379 | Langfuse cache (Redis)           |
+
+### Langfuse (Observability)
+
+Langfuse is auto-configured via headless initialization — no manual signup needed.
+
+| | |
+|---|---|
+| **URL** | http://localhost:4000 |
+| **Email** | `admin@local.dev` |
+| **Password** | `admin1234` |
+| **Public Key** | `pk-lf-pyconf-public` |
+| **Secret Key** | `sk-lf-pyconf-secret` |
 
 #### 3. Seed the database
 
