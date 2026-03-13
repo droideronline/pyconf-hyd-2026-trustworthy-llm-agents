@@ -2,8 +2,8 @@
 
 Usage:
     docker compose up -d
-    python -m support_swarm.db.seed                # tables + data
-    OPENAI_API_KEY=sk-... python -m support_swarm.db.seed --embeddings   # + embeddings
+    python -m support_swarm.db.seed                # tables + data + embeddings
+    python -m support_swarm.db.seed --no-embeddings  # tables + data only
 """
 
 import logging
@@ -296,5 +296,5 @@ if __name__ == "__main__":
 
     seed_database()
 
-    if "--embeddings" in sys.argv:
+    if "--no-embeddings" not in sys.argv:
         seed_embeddings()
