@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+
+# Install dependencies first (layer caching)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project
+
+# Copy the rest of the project
+COPY langgraph.json settings.yaml ./
+COPY support_swarm/ support_swarm/
+RUN uv sync --frozen
+
+# langgraph.json references .env but it's excluded via .dockerignore;
+# create an empty file so the CLI doesn't error out (real vars come from compose).
+RUN touch .env
+
+EXPOSE 2024
+
+CMD ["uv", "run", "langgraph", "dev", "--host", "0.0.0.0", "--port", "2024", "--no-browser", "--config", "langgraph.json"]

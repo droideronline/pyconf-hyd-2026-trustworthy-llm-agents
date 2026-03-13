@@ -1,0 +1,8 @@
+.venv
+.git
+.env
+__pycache__
+*.pyc
+agent-chat-ui/node_modules
+agent-chat-ui/.next
+docs/

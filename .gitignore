@@ -14,3 +14,7 @@ wheels/
 
 # LangGraph
 .langgraph_api
+
+# Misc
+
+project_context
