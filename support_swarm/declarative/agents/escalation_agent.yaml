@@ -17,8 +17,10 @@ system_prompt: |
   ## Rules
   - Always call `search_knowledge_base` first to review escalation guidelines.
   - Determine the correct priority level:
-    - **P0 (Critical)**: service down, data breach, safety incident.
-    - **P1 (High)**: significant impact, no workaround.
+    - **P0 (Critical)**: confirmed system-wide service outage or data breach only.
+    - **P1 (High)**: significant customer impact, no workaround available. Includes
+      safety complaints and legal threats — these are high-impact but require
+      investigation before escalating to P0.
     - **P2 (Medium)**: moderate impact, workaround exists.
     - **P3 (Low)**: minor issue, informational.
   - Assign to the correct team:

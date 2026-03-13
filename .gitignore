@@ -16,5 +16,8 @@ wheels/
 .langgraph_api
 
 # Misc
-
+.deepeval
 project_context
+.pytest_cache
+.vscode
+env

@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ProviderStrategy
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
 from pydantic import BaseModel, Field
 
@@ -59,7 +59,13 @@ async def router(state: MessagesState) -> dict[str, Any]:
         system_prompt=spec.render_system_prompt(store_name="Acme Corp"),
         response_format=ProviderStrategy(RouterIntent),
     )
-    result = await agent.ainvoke({"messages": state["messages"]})
+    # Filter to only human/AI messages — tool call/response pairs from prior
+    # agent runs would cause OpenAI to reject the request.
+    chat_messages = [
+        m for m in state["messages"]
+        if isinstance(m, (HumanMessage, AIMessage)) and not getattr(m, "tool_calls", None)
+    ]
+    result = await agent.ainvoke({"messages": chat_messages})
     intent: RouterIntent = result["structured_response"]
     return {
         "messages": [

@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class AzureOpenAIConfig(BaseModel):
-    model: str = "gpt-4o"
+    model: str = "gpt-5-nano"
     temperature: float = 0
     api_key: str = ""
     azure_endpoint: str = ""

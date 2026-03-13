@@ -43,5 +43,21 @@ services:
     depends_on:
       - langgraph
 
+  evals:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.evals
+    env_file:
+      - .env
+    environment:
+      LANGGRAPH_URL: http://langgraph:2024
+    volumes:
+      - ./evals:/app/evals
+      - ./support_swarm:/app/support_swarm
+    depends_on:
+      - langgraph
+    profiles:
+      - evals
+
 volumes:
   pgdata:

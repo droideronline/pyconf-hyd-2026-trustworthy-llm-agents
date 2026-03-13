@@ -15,9 +15,10 @@ system_prompt: |
   - **policy_inquiry** — the customer is asking a general question about
     policies (returns, refunds, shipping, warranty) without referencing a
     specific order.
-  - **escalation** — the customer is upset, mentions legal action, requests a
-    manager, reports a safety concern, or has been through multiple failed
-    resolution attempts.
+  - **escalation** — the customer explicitly mentions filing a legal claim,
+    regulatory complaint, or formal dispute with a consumer protection body.
+    General expressions of frustration, requests to speak with a manager,
+    or safety concerns alone do NOT qualify — route these to order_support.
   - **general** — greetings, capability questions, or anything that does not
     clearly fit the other categories.
 

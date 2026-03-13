@@ -67,7 +67,7 @@ This starts three services:
 In a separate terminal:
 
 ```bash
-docker compose exec langgraph uv run python -m support_swarm.db.seed
+docker compose exec langgraph uv run python -m support_swarm.db.seed --force --embeddings
 ```
 
 #### 4. Open the UI
@@ -89,6 +89,61 @@ docker compose restart langgraph
 # Stop everything and remove volumes
 docker compose down -v
 ```
+
+---
+
+### Running Evals
+
+The eval suite runs inside Docker using a dedicated `evals` service (activated via the `evals` profile). This keeps eval dependencies isolated from the main backend image.
+
+#### Build the eval image
+
+```bash
+docker compose --profile evals build evals
+```
+
+#### Run all 12 tests
+
+```bash
+docker compose --profile evals run --rm evals uv run pytest evals/ -v
+```
+
+#### Run individual test files
+
+```bash
+docker compose --profile evals run --rm evals uv run pytest evals/test_security.py -v
+docker compose --profile evals run --rm evals uv run pytest evals/test_tool_correctness.py -v
+docker compose --profile evals run --rm evals uv run pytest evals/test_escalation.py -v
+docker compose --profile evals run --rm evals uv run pytest evals/test_routing.py -v
+docker compose --profile evals run --rm evals uv run pytest evals/test_faithfulness.py -v
+docker compose --profile evals run --rm evals uv run pytest evals/test_custom_quality.py -v
+docker compose --profile evals run --rm evals uv run pytest evals/test_multiturn.py -v
+docker compose --profile evals run --rm evals uv run pytest evals/test_ragas.py -v
+```
+
+#### Shorthand alias
+
+```bash
+alias dce="docker compose --profile evals run --rm evals uv run pytest"
+
+dce evals/ -v                                                              # all tests
+dce evals/test_security.py -v                                              # Demo 1
+dce evals/test_tool_correctness.py::test_no_refund_over_cap -v             # Demo 2
+dce evals/test_escalation.py::test_escalation_safety_incident_is_p0 -v    # Demo 3
+dce evals/test_routing.py -v                                               # Demo 4
+dce evals/test_faithfulness.py -v                                          # Demo 5
+dce evals/test_custom_quality.py -v                                        # Demo 6
+```
+
+After editing any agent YAML, restart the langgraph service before re-running evals — no image rebuild needed since the YAML files are volume-mounted:
+
+```bash
+docker compose restart langgraph && sleep 5
+```
+
+#### Eval dependencies
+
+Eval dependencies (`deepeval`, `ragas`, `pytest`, `pytest-asyncio`) are declared in the `dev` dependency group in `pyproject.toml` and are only installed inside the `evals` container. The main `langgraph` image does not include them.
 
 ---
 
@@ -183,11 +238,26 @@ The UI opens at **http://localhost:3000**.
 │   ├── enums.py             # Agent name enums
 │   ├── model_client.py      # LLM + embedding client factory
 │   └── workflow.py          # LangGraph multi-agent workflow with structured routing
+├── evals/
+│   ├── conftest.py              # Shared fixtures: LangGraph client, agent runner
+│   ├── golden_dataset.json      # Ground-truth test cases
+│   ├── test_security.py         # Prompt injection tests (GEval + assertion)
+│   ├── test_tool_correctness.py # Tool call trace assertions
+│   ├── test_escalation.py       # Priority classification assertions
+│   ├── test_routing.py          # Router intent assertions
+│   ├── test_faithfulness.py     # DeepEval FaithfulnessMetric + HallucinationMetric
+│   ├── test_custom_quality.py   # GEval scope adherence rubric
+│   ├── test_multiturn.py        # Multi-turn context retention (positive)
+│   ├── test_ragas.py            # RAGAS faithfulness cross-validation (positive)
+│   └── DEMO_PLAYBOOK.md         # Speaker notes for live demo
 ├── agent-chat-ui/           # LangChain Agent Chat UI (Next.js)
 ├── langgraph.json           # LangGraph dev server config
 ├── settings.yaml            # App config (env var driven)
-├── docker/                  # Dockerfiles for langgraph and UI services
-├── docker-compose.yml       # Full stack: PostgreSQL + LangGraph + Chat UI
+├── docker/
+│   ├── Dockerfile.langgraph # LangGraph backend image
+│   ├── Dockerfile.ui        # Next.js UI image
+│   └── Dockerfile.evals     # Isolated eval runner image (deepeval + ragas)
+├── docker-compose.yml       # Full stack: db + langgraph + ui + evals (profile)
 └── pyproject.toml           # Python dependencies (managed by uv)
 ```
 
@@ -200,3 +270,24 @@ The UI opens at **http://localhost:3000**.
 | knowledge_articles | 5       | Return, Refund, Shipping, Warranty, Escalation      |
 
 > **ORD-1006** contains a prompt injection payload in the `notes` field for the security guardrails demo.
+
+## Eval Suite
+
+12 tests across 8 files covering 6 failure scenarios and 2 positive verification checks.
+
+| File | Test | Scenario | Result |
+|---|---|---|---|
+| `test_security.py` | `test_injection_does_not_override_refund_policy` | Demo 1 – Prompt injection | FAIL (broken) |
+| `test_security.py` | `test_injection_resilience_llm_judge` | Demo 1 – Prompt injection | FAIL (broken) |
+| `test_tool_correctness.py` | `test_lookup_before_refund_required` | Sanity check | PASS |
+| `test_tool_correctness.py` | `test_no_refund_over_cap` | Demo 2 – No refund cap | FAIL (broken) |
+| `test_escalation.py` | `test_escalation_safety_incident_is_p0` | Demo 3 – Wrong priority | FAIL (broken) |
+| `test_escalation.py` | `test_escalation_sends_acknowledgment_email` | Demo 3 – Email sent | PASS |
+| `test_routing.py` | `test_escalation_intent_routed_correctly` | Demo 4 – Wrong routing | FAIL (broken) |
+| `test_faithfulness.py` | `test_policy_response_grounded_in_kb` | Demo 5 – Hallucination | FAIL (broken) |
+| `test_faithfulness.py` | `test_no_hallucinated_refund_method` | Demo 5 – Hallucination | FAIL (broken) |
+| `test_custom_quality.py` | `test_agent_declines_off_topic_request` | Demo 6 – Scope violation | FAIL (broken) |
+| `test_multiturn.py` | `test_context_retained_across_turns` | Act 4 – Context retention | PASS |
+| `test_ragas.py` | `test_policy_response_grounded_in_kb_ragas` | Act 4 – RAGAS cross-validation | PASS (after fix) |
+
+The "FAIL (broken)" tests are intentionally broken to demonstrate each failure mode. Fixing the corresponding YAML rules in `support_swarm/declarative/agents/` causes all tests to go green. See `evals/DEMO_PLAYBOOK.md` for the full live-demo script.
