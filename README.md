@@ -200,3 +200,10 @@ The UI opens at **http://localhost:3000**.
 | knowledge_articles | 5       | Return, Refund, Shipping, Warranty, Escalation      |
 
 > **ORD-1006** contains a prompt injection payload in the `notes` field for the security guardrails demo.
+
+## Need help with workshop content?
+
+Those who attended our Workshop at PyConf Hyderabad 2026 on 14th March and things didn't work for you? Please do reach out to either of us at LinkedIn:
+
+Dinesh: https://www.linkedin.com/in/dinesh106/
+Sanchit: https://www.linkedin.com/in/inovizz/
