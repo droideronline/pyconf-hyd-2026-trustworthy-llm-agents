@@ -203,7 +203,7 @@ The UI opens at **http://localhost:3000**.
 
 ## Need help with workshop content?
 
-Those who attended our Workshop at PyConf Hyderabad 2026 on 14th March and things didn't work for you? Please do reach out to either of us at LinkedIn:
+Those who attended our Workshop at PyConf Hyderabad 2026 on 14th March and given steps didn't work for you? Please do reach out to either of us at LinkedIn:
 
-Dinesh: https://www.linkedin.com/in/dinesh106/
-Sanchit: https://www.linkedin.com/in/inovizz/
+- Dinesh: https://www.linkedin.com/in/dinesh106/
+- Sanchit: https://www.linkedin.com/in/inovizz/
